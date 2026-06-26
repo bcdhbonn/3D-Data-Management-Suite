@@ -21,6 +21,7 @@ class MasterFileRenamer(ctk.CTk):
         self.target_path = ctk.StringVar()
         self.search_pattern = ctk.StringVar(value=r"SK_?755_Sirenenrelief")
         self.replace_str = ctk.StringVar(value="SK_755_Siren_Relief")
+        self.match_case = ctk.BooleanVar(value=False)
         self.gui_queue = queue.Queue()
         
         # Configure layout grids
@@ -176,10 +177,6 @@ class MasterFileRenamer(ctk.CTk):
             text="Show Preview (Recommended)",
             font=ctk.CTkFont(size=14, weight="bold"),
             height=38,
-            fg_color="transparent",
-            border_color=self.combo_ext.cget("button_color"),
-            border_width=1,
-            hover_color="#0d1f3d",
             command=self.generate_sequential_preview
         )
         self.seq_preview_btn.grid(row=0, column=0, padx=(0, 5), sticky="ew")
@@ -237,7 +234,7 @@ class MasterFileRenamer(ctk.CTk):
         
         lbl_search = ctk.CTkLabel(
             inputs_frame, 
-            text="Search term or pattern (case-insensitive):", 
+            text="Search term or pattern (case-insensitive unless Match Case checked):", 
             font=ctk.CTkFont(size=15, weight="bold")
         )
         lbl_search.grid(row=0, column=0, sticky="w", pady=(5, 2))
@@ -264,6 +261,14 @@ class MasterFileRenamer(ctk.CTk):
         replace_ent = ctk.CTkEntry(inputs_frame, textvariable=self.replace_str, font=("Helvetica", 14))
         replace_ent.grid(row=4, column=0, sticky="ew", pady=(0, 5))
         
+        self.cb_case = ctk.CTkCheckBox(
+            inputs_frame,
+            text="Case Sensitive (Match Exact Case)",
+            variable=self.match_case,
+            font=ctk.CTkFont(size=14)
+        )
+        self.cb_case.grid(row=5, column=0, sticky="w", pady=(5, 5))
+        
         # Action Buttons row
         btn_frame = ctk.CTkFrame(self.tab_regex, fg_color="transparent")
         btn_frame.grid(row=2, column=0, sticky="ew", padx=15, pady=5)
@@ -274,10 +279,6 @@ class MasterFileRenamer(ctk.CTk):
             text="Show Preview (Recommended)",
             font=ctk.CTkFont(size=14, weight="bold"),
             height=38,
-            fg_color="transparent",
-            border_color=self.combo_ext.cget("button_color"),
-            border_width=1,
-            hover_color="#0d1f3d",
             command=self.generate_regex_preview
         )
         self.regex_preview_btn.grid(row=0, column=0, padx=(0, 5), sticky="ew")
@@ -413,7 +414,8 @@ class MasterFileRenamer(ctk.CTk):
             return
             
         try:
-            regex = re.compile(pattern, re.IGNORECASE)
+            flags = 0 if self.match_case.get() else re.IGNORECASE
+            regex = re.compile(pattern, flags)
             
             matches = []
             # Bottom-up walk matching production logic
@@ -572,7 +574,8 @@ class MasterFileRenamer(ctk.CTk):
         new_txt = self.replace_str.get()
         count = 0
         try:
-            regex = re.compile(pattern, re.IGNORECASE)
+            flags = 0 if self.match_case.get() else re.IGNORECASE
+            regex = re.compile(pattern, flags)
             
             # Bottom-up walk is required for directory renaming
             for root, dirs, files in os.walk(folder, topdown=False):
