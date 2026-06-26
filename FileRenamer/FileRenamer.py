@@ -15,7 +15,7 @@ class MasterFileRenamer(ctk.CTk):
         super().__init__()
         
         self.title("Master File Renamer")
-        self.geometry("700x550")
+        self.geometry("750x700")
         self.resizable(True, True)
         
         self.target_path = ctk.StringVar()
@@ -130,73 +130,131 @@ class MasterFileRenamer(ctk.CTk):
 
     def setup_sequential_tab(self):
         self.tab_seq.grid_columnconfigure(0, weight=1)
+        self.tab_seq.grid_rowconfigure(4, weight=1) # Allow preview textbox to expand
         
         lbl = ctk.CTkLabel(
             self.tab_seq, 
             text="Select File Type to rename:", 
             font=ctk.CTkFont(size=13, weight="bold")
         )
-        lbl.grid(row=0, column=0, sticky="w", padx=10, pady=(15, 5))
+        lbl.grid(row=0, column=0, sticky="w", padx=10, pady=(15, 2))
         
         self.combo_ext = ctk.CTkOptionMenu(
             self.tab_seq,
             values=["(No folder selected)"]
         )
-        self.combo_ext.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 15))
+        self.combo_ext.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
         
-        # Status & Progress Frame inside Tab
+        # Action Buttons row
+        btn_frame = ctk.CTkFrame(self.tab_seq, fg_color="transparent")
+        btn_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=5)
+        btn_frame.grid_columnconfigure((0, 1), weight=1)
+        
+        self.seq_preview_btn = ctk.CTkButton(
+            btn_frame,
+            text="Preview Changes",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="transparent",
+            border_color=self.combo_ext.cget("button_color"),
+            border_width=1,
+            hover_color="#0d1f3d",
+            command=self.generate_sequential_preview
+        )
+        self.seq_preview_btn.grid(row=0, column=0, padx=(0, 5), sticky="ew")
+        
+        self.seq_btn = ctk.CTkButton(
+            btn_frame, 
+            text="Start Smart Rename", 
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self.start_sequential_thread,
+            state="disabled"
+        )
+        self.seq_btn.grid(row=0, column=1, padx=(5, 0), sticky="ew")
+        
+        # Status Label and Progress Bar
         self.seq_status = ctk.CTkLabel(
             self.tab_seq, 
             text="Status: Ready", 
             font=ctk.CTkFont(size=12),
             text_color="gray"
         )
-        self.seq_status.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 5))
+        self.seq_status.grid(row=3, column=0, sticky="w", padx=10, pady=(5, 2))
+        
+        # Preview Text Box
+        self.seq_preview = ctk.CTkTextbox(
+            self.tab_seq,
+            font=("Consolas", 10),
+            activate_scrollbars=True
+        )
+        self.seq_preview.grid(row=4, column=0, sticky="nsew", padx=10, pady=5)
+        self.seq_preview.insert(ctk.END, "Rename preview will appear here...\n")
+        self.seq_preview.configure(state="disabled")
         
         self.seq_progress = ctk.CTkProgressBar(self.tab_seq)
-        self.seq_progress.grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 15))
+        self.seq_progress.grid(row=5, column=0, sticky="ew", padx=10, pady=(10, 15))
         self.seq_progress.set(0.0)
-        
-        self.seq_btn = ctk.CTkButton(
-            self.tab_seq, 
-            text="Start Smart Rename", 
-            font=ctk.CTkFont(size=13, weight="bold"),
-            height=35,
-            command=self.start_sequential_thread,
-            state="disabled"
-        )
-        self.seq_btn.grid(row=4, column=0, sticky="ew", padx=10, pady=10)
 
     def setup_regex_tab(self):
         self.tab_regex.grid_columnconfigure(0, weight=1)
+        self.tab_regex.grid_rowconfigure(3, weight=1) # Allow preview textbox to expand
+        
+        # Grid layout for inputs to save space
+        inputs_frame = ctk.CTkFrame(self.tab_regex, fg_color="transparent")
+        inputs_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
+        inputs_frame.grid_columnconfigure(0, weight=1)
         
         lbl_search = ctk.CTkLabel(
-            self.tab_regex, 
+            inputs_frame, 
             text="Search Pattern (Regex):", 
             font=ctk.CTkFont(size=13, weight="bold")
         )
-        lbl_search.grid(row=0, column=0, sticky="w", padx=10, pady=(15, 2))
+        lbl_search.grid(row=0, column=0, sticky="w", pady=(5, 2))
         
-        search_ent = ctk.CTkEntry(self.tab_regex, textvariable=self.search_pattern)
-        search_ent.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 5))
+        search_ent = ctk.CTkEntry(inputs_frame, textvariable=self.search_pattern)
+        search_ent.grid(row=1, column=0, sticky="ew", pady=(0, 2))
         
         lbl_tip = ctk.CTkLabel(
-            self.tab_regex, 
+            inputs_frame, 
             text="Tip: 'SK_?755' matches both SK755 and SK_755", 
             font=ctk.CTkFont(size=11, slant="italic"),
             text_color="gray"
         )
-        lbl_tip.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 10))
+        lbl_tip.grid(row=2, column=0, sticky="w", pady=(0, 5))
         
         lbl_replace = ctk.CTkLabel(
-            self.tab_regex, 
+            inputs_frame, 
             text="Replace with:", 
             font=ctk.CTkFont(size=13, weight="bold")
         )
-        lbl_replace.grid(row=3, column=0, sticky="w", padx=10, pady=(5, 2))
+        lbl_replace.grid(row=3, column=0, sticky="w", pady=(5, 2))
         
-        replace_ent = ctk.CTkEntry(self.tab_regex, textvariable=self.replace_str)
-        replace_ent.grid(row=4, column=0, sticky="ew", padx=10, pady=(0, 15))
+        replace_ent = ctk.CTkEntry(inputs_frame, textvariable=self.replace_str)
+        replace_ent.grid(row=4, column=0, sticky="ew", pady=(0, 5))
+        
+        # Action Buttons row
+        btn_frame = ctk.CTkFrame(self.tab_regex, fg_color="transparent")
+        btn_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
+        btn_frame.grid_columnconfigure((0, 1), weight=1)
+        
+        self.regex_preview_btn = ctk.CTkButton(
+            btn_frame,
+            text="Preview Changes",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="transparent",
+            border_color=self.combo_ext.cget("button_color"),
+            border_width=1,
+            hover_color="#0d1f3d",
+            command=self.generate_regex_preview
+        )
+        self.regex_preview_btn.grid(row=0, column=0, padx=(0, 5), sticky="ew")
+        
+        self.regex_btn = ctk.CTkButton(
+            btn_frame, 
+            text="Start Regex Rename", 
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self.start_regex_thread
+        )
+        self.regex_btn.grid(row=0, column=1, padx=(5, 0), sticky="ew")
         
         self.regex_status = ctk.CTkLabel(
             self.tab_regex, 
@@ -204,16 +262,17 @@ class MasterFileRenamer(ctk.CTk):
             font=ctk.CTkFont(size=12),
             text_color="gray"
         )
-        self.regex_status.grid(row=5, column=0, sticky="w", padx=10, pady=(0, 5))
+        self.regex_status.grid(row=2, column=0, sticky="w", padx=10, pady=(5, 2))
         
-        self.regex_btn = ctk.CTkButton(
-            self.tab_regex, 
-            text="Start Regex Rename", 
-            font=ctk.CTkFont(size=13, weight="bold"),
-            height=35,
-            command=self.start_regex_thread
+        # Preview Text Box
+        self.regex_preview = ctk.CTkTextbox(
+            self.tab_regex,
+            font=("Consolas", 10),
+            activate_scrollbars=True
         )
-        self.regex_btn.grid(row=6, column=0, sticky="ew", padx=10, pady=10)
+        self.regex_preview.grid(row=3, column=0, sticky="nsew", padx=10, pady=(5, 15))
+        self.regex_preview.insert(ctk.END, "Rename preview will appear here...\n")
+        self.regex_preview.configure(state="disabled")
 
     def scan_for_extensions(self):
         folder = self.target_path.get()
@@ -246,6 +305,115 @@ class MasterFileRenamer(ctk.CTk):
             self.combo_ext.set("Error reading directory")
             self.seq_btn.configure(state="disabled")
             self.seq_status.configure(text=f"Status: Scan error: {e}")
+
+    def generate_sequential_preview(self):
+        folder = self.target_path.get()
+        ext = self.combo_ext.get()
+        
+        self.seq_preview.configure(state="normal")
+        self.seq_preview.delete("1.0", ctk.END)
+        
+        if not folder or not os.path.isdir(folder):
+            self.seq_preview.insert(ctk.END, "Error: Select a valid root folder first.\n")
+            self.seq_preview.configure(state="disabled")
+            return
+            
+        if not ext or ext not in self.combo_ext.cget("values") or ext.startswith("("):
+            self.seq_preview.insert(ctk.END, "Error: No files found to rename or file type not scanned.\n")
+            self.seq_preview.configure(state="disabled")
+            return
+            
+        base_name = os.path.basename(os.path.normpath(folder)) + "_"
+        
+        try:
+            files = sorted([f for f in os.listdir(folder) 
+                            if f.lower().endswith(ext) and os.path.isfile(os.path.join(folder, f))])
+            
+            file_count = len(files)
+            if file_count == 0:
+                self.seq_preview.insert(ctk.END, f"No files ending with '{ext}' found in directory.\n")
+                self.seq_preview.configure(state="disabled")
+                return
+
+            padding_length = len(str(file_count))
+            
+            self.seq_preview.insert(ctk.END, f"[PREVIEW] Sequential Renaming for '{ext}' files:\n")
+            self.seq_preview.insert(ctk.END, f"Base Name: {base_name}\n")
+            self.seq_preview.insert(ctk.END, f"Found {file_count} files. Zero-padding: {padding_length} digits.\n")
+            self.seq_preview.insert(ctk.END, "="*70 + "\n")
+            self.seq_preview.insert(ctk.END, f"{'OLD FILENAME':<32} --> {'NEW FILENAME':<32}\n")
+            self.seq_preview.insert(ctk.END, "-"*70 + "\n")
+            
+            # Preview first 15 files
+            preview_limit = 15
+            for index, filename in enumerate(files, 1):
+                if index > preview_limit:
+                    self.seq_preview.insert(ctk.END, f"... and {file_count - preview_limit} more files.\n")
+                    break
+                num = str(index).zfill(padding_length)
+                new_name = f"{base_name}{num}{ext}"
+                self.seq_preview.insert(ctk.END, f"{filename[:31]:<32} --> {new_name[:31]:<32}\n")
+                
+        except Exception as e:
+            self.seq_preview.insert(ctk.END, f"Error generating preview: {e}\n")
+            
+        self.seq_preview.configure(state="disabled")
+
+    def generate_regex_preview(self):
+        folder = self.target_path.get()
+        pattern = self.search_pattern.get()
+        new_txt = self.replace_str.get()
+        
+        self.regex_preview.configure(state="normal")
+        self.regex_preview.delete("1.0", ctk.END)
+        
+        if not folder or not os.path.isdir(folder):
+            self.regex_preview.insert(ctk.END, "Error: Select a valid root folder first.\n")
+            self.regex_preview.configure(state="disabled")
+            return
+            
+        if not pattern:
+            self.regex_preview.insert(ctk.END, "Error: Search pattern cannot be empty.\n")
+            self.regex_preview.configure(state="disabled")
+            return
+            
+        try:
+            regex = re.compile(pattern, re.IGNORECASE)
+            
+            matches = []
+            # Bottom-up walk just like in production renaming
+            for root, dirs, files in os.walk(folder, topdown=False):
+                for name in files + dirs:
+                    if regex.search(name):
+                        new_name = regex.sub(new_txt, name)
+                        if name != new_name:
+                            matches.append((name, new_name))
+            
+            match_count = len(matches)
+            if match_count == 0:
+                self.regex_preview.insert(ctk.END, f"No files or folders matched the pattern '{pattern}'.\n")
+                self.regex_preview.configure(state="disabled")
+                return
+
+            self.regex_preview.insert(ctk.END, f"[PREVIEW] Regex Search & Replace matches:\n")
+            self.regex_preview.insert(ctk.END, f"Pattern: {pattern}  -->  Replace: {new_txt}\n")
+            self.regex_preview.insert(ctk.END, f"Found {match_count} items matching pattern.\n")
+            self.regex_preview.insert(ctk.END, "="*70 + "\n")
+            self.regex_preview.insert(ctk.END, f"{'CURRENT NAME':<32} --> {'PROPOSED NAME':<32}\n")
+            self.regex_preview.insert(ctk.END, "-"*70 + "\n")
+            
+            # Preview first 15 files/folders
+            preview_limit = 15
+            for index, (old_name, new_name) in enumerate(matches, 1):
+                if index > preview_limit:
+                    self.regex_preview.insert(ctk.END, f"... and {match_count - preview_limit} more items.\n")
+                    break
+                self.regex_preview.insert(ctk.END, f"{old_name[:31]:<32} --> {new_name[:31]:<32}\n")
+                
+        except Exception as e:
+            self.regex_preview.insert(ctk.END, f"Error generating preview (Invalid Regex?): {e}\n")
+            
+        self.regex_preview.configure(state="disabled")
 
     def start_sequential_thread(self):
         folder = self.target_path.get()
@@ -291,8 +459,7 @@ class MasterFileRenamer(ctk.CTk):
                     messagebox.showinfo("Success", msg["message"])
                     self.reset_ui(tab)
                     # Trigger a rescan of extensions after sequential renaming finishes
-                    if tab == "seq":
-                        self.scan_for_extensions()
+                    self.scan_for_extensions()
                 elif action == "error":
                     messagebox.showerror("Error", msg["message"])
                     self.reset_ui(tab)
