@@ -6,7 +6,7 @@ from tkinter import filedialog, messagebox
 import threading
 import queue
 
-# Set theme and appearance
+# Setzt das allgemeine Design und den Farbstil fest
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
@@ -14,7 +14,7 @@ class MasterFileRenamer(ctk.CTk):
     def __init__(self):
         super().__init__()
         
-        self.title("Master File Renamer")
+        self.title("Master File Renamer | Dateinamen anpassen")
         self.geometry("750x700")
         self.resizable(True, True)
         
@@ -23,48 +23,48 @@ class MasterFileRenamer(ctk.CTk):
         self.replace_str = ctk.StringVar(value="SK_755_Siren_Relief")
         self.gui_queue = queue.Queue()
         
-        # Configure layout grids
+        # Grid-Layout des Hauptfensters konfigurieren
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        # Main container frame
+        # Haupt-Container-Frame
         self.main_frame = ctk.CTkFrame(self, corner_radius=15)
         self.main_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         self.main_frame.grid_columnconfigure(0, weight=1)
-        self.main_frame.grid_rowconfigure(2, weight=1) # Allow tabview to grow
+        self.main_frame.grid_rowconfigure(2, weight=1) # Erlaubt der Tab-Ansicht sich auszudehnen
         
-        # Header Section Frame (Title + Dark Mode Switch)
+        # Kopfbereich Frame (Titel, Untertitel und Design-Schalter)
         self.header_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         self.header_frame.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
         self.header_frame.grid_columnconfigure(0, weight=1)
         self.header_frame.grid_columnconfigure(1, weight=0)
         
-        # Left side of header: Title and Subtitle
+        # Linke Seite des Kopfbereichs: Titel und Erklärung
         self.title_col = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         self.title_col.grid(row=0, column=0, sticky="w")
         
         self.title_label = ctk.CTkLabel(
             self.title_col, 
-            text="Master File Renamer", 
+            text="Dateimanager & Renamer", 
             font=ctk.CTkFont(family="Helvetica", size=24, weight="bold")
         )
         self.title_label.grid(row=0, column=0, sticky="w")
         
         self.subtitle_label = ctk.CTkLabel(
             self.title_col, 
-            text="Unified Sequential Renaming & Dynamic Regex Replacing Utility", 
+            text="Werkzeug zum fortlaufenden Nummerieren und Ersetzen von Namensmustern", 
             font=ctk.CTkFont(size=12),
             text_color="gray"
         )
         self.subtitle_label.grid(row=1, column=0, sticky="w")
         
-        # Right side of header: Toggle Switch for Dark Mode
+        # Rechte Seite des Kopfbereichs: Hell/Dunkel-Design umschalten
         initial_mode = ctk.get_appearance_mode()
         self.switch_var = ctk.StringVar(value=initial_mode)
         
         self.theme_switch = ctk.CTkSwitch(
             self.header_frame,
-            text="Dark Mode",
+            text="Dunkler Modus",
             command=self.toggle_theme,
             variable=self.switch_var,
             onvalue="Dark",
@@ -72,14 +72,14 @@ class MasterFileRenamer(ctk.CTk):
         )
         self.theme_switch.grid(row=0, column=1, sticky="e", pady=5)
         
-        # Shared Folder Selection Frame
+        # Gemeinsamer Bereich: Zielordner auswählen
         self.path_frame = ctk.CTkFrame(self.main_frame)
         self.path_frame.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
         self.path_frame.grid_columnconfigure(0, weight=1)
         
         self.path_label = ctk.CTkLabel(
             self.path_frame, 
-            text="Root Directory (Target Folder)", 
+            text="1. Zielordner auswählen (Verzeichnis mit den umzubenennenden Dateien)", 
             font=ctk.CTkFont(size=13, weight="bold")
         )
         self.path_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(10, 2))
@@ -87,36 +87,36 @@ class MasterFileRenamer(ctk.CTk):
         self.path_entry = ctk.CTkEntry(
             self.path_frame, 
             textvariable=self.target_path, 
-            placeholder_text="Select a folder to scan..."
+            placeholder_text="Klicke auf Durchsuchen, um einen Ordner zu wählen..."
         )
         self.path_entry.grid(row=1, column=0, sticky="ew", padx=(15, 10), pady=(0, 15))
         
         self.browse_btn = ctk.CTkButton(
             self.path_frame, 
-            text="Browse", 
+            text="Durchsuchen", 
             width=100, 
             command=self.browse_folder
         )
         self.browse_btn.grid(row=1, column=1, sticky="e", padx=(0, 15), pady=(0, 15))
         
-        # Tab View
+        # Reiter-Navigation (Tabs) für die beiden Werkzeuge
         self.tabview = ctk.CTkTabview(self.main_frame)
         self.tabview.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="nsew")
         
-        # Add tabs
-        self.tab_seq = self.tabview.add("Smart Sequential Rename")
-        self.tab_regex = self.tabview.add("Dynamic Regex Replace")
+        # Tabs hinzufügen
+        self.tab_seq = self.tabview.add("Fortlaufende Nummerierung")
+        self.tab_regex = self.tabview.add("Suchen & Ersetzen (Muster)")
         
-        # Setup Tab 1: Sequential Rename
+        # Tab 1 konfigurieren: Fortlaufende Nummerierung
         self.setup_sequential_tab()
         
-        # Setup Tab 2: Regex Replace
+        # Tab 2 konfigurieren: Suchen & Ersetzen
         self.setup_regex_tab()
         
-        # Trace folder path updates to scan extensions
+        # Überwacht Änderungen am Ordnerpfad, um die Dateitypen-Liste direkt zu aktualisieren
         self.target_path.trace_add("write", lambda *args: self.scan_for_extensions())
         
-        # Start GUI queue consumer
+        # Startet die thread-sichere Benutzeroberflächen-Aktualisierung
         self.process_queue()
 
     def toggle_theme(self):
@@ -130,29 +130,38 @@ class MasterFileRenamer(ctk.CTk):
 
     def setup_sequential_tab(self):
         self.tab_seq.grid_columnconfigure(0, weight=1)
-        self.tab_seq.grid_rowconfigure(4, weight=1) # Allow preview textbox to expand
+        self.tab_seq.grid_rowconfigure(5, weight=1) # Erlaubt der Vorschau-Box sich auszudehnen
+        
+        info_lbl = ctk.CTkLabel(
+            self.tab_seq,
+            text="Dieses Werkzeug benennt alle Dateien eines Typs fortlaufend um.\nDer neue Name entspricht dem Ordnernamen gefolgt von einer fortlaufenden Nummer (z. B. Grabung_01.jpg, Grabung_02.jpg).",
+            font=ctk.CTkFont(size=12, slant="italic"),
+            text_color="gray",
+            justify="left"
+        )
+        info_lbl.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
         
         lbl = ctk.CTkLabel(
             self.tab_seq, 
-            text="Select File Type to rename:", 
+            text="Dateityp auswählen (z. B. .jpg für Bilder, .obj für 3D-Modelle):", 
             font=ctk.CTkFont(size=13, weight="bold")
         )
-        lbl.grid(row=0, column=0, sticky="w", padx=10, pady=(15, 2))
+        lbl.grid(row=1, column=0, sticky="w", padx=10, pady=(10, 2))
         
         self.combo_ext = ctk.CTkOptionMenu(
             self.tab_seq,
-            values=["(No folder selected)"]
+            values=["(Kein Ordner gescannt)"]
         )
-        self.combo_ext.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
+        self.combo_ext.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 10))
         
-        # Action Buttons row
+        # Buttons für Aktionen
         btn_frame = ctk.CTkFrame(self.tab_seq, fg_color="transparent")
-        btn_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=5)
+        btn_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=5)
         btn_frame.grid_columnconfigure((0, 1), weight=1)
         
         self.seq_preview_btn = ctk.CTkButton(
             btn_frame,
-            text="Preview Changes",
+            text="Änderungen anzeigen (Vorschau)",
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="transparent",
             border_color=self.combo_ext.cget("button_color"),
@@ -164,48 +173,57 @@ class MasterFileRenamer(ctk.CTk):
         
         self.seq_btn = ctk.CTkButton(
             btn_frame, 
-            text="Start Smart Rename", 
+            text="Umbenennung starten", 
             font=ctk.CTkFont(size=12, weight="bold"),
             command=self.start_sequential_thread,
             state="disabled"
         )
         self.seq_btn.grid(row=0, column=1, padx=(5, 0), sticky="ew")
         
-        # Status Label and Progress Bar
+        # Statusanzeige
         self.seq_status = ctk.CTkLabel(
             self.tab_seq, 
-            text="Status: Ready", 
+            text="Status: Bereit", 
             font=ctk.CTkFont(size=12),
             text_color="gray"
         )
-        self.seq_status.grid(row=3, column=0, sticky="w", padx=10, pady=(5, 2))
+        self.seq_status.grid(row=4, column=0, sticky="w", padx=10, pady=(5, 2))
         
-        # Preview Text Box
+        # Vorschau Text-Box
         self.seq_preview = ctk.CTkTextbox(
             self.tab_seq,
             font=("Consolas", 10),
             activate_scrollbars=True
         )
-        self.seq_preview.grid(row=4, column=0, sticky="nsew", padx=10, pady=5)
-        self.seq_preview.insert(ctk.END, "Rename preview will appear here...\n")
+        self.seq_preview.grid(row=5, column=0, sticky="nsew", padx=10, pady=5)
+        self.seq_preview.insert(ctk.END, "Die Vorschau für die Nummerierung wird hier angezeigt...\n")
         self.seq_preview.configure(state="disabled")
         
         self.seq_progress = ctk.CTkProgressBar(self.tab_seq)
-        self.seq_progress.grid(row=5, column=0, sticky="ew", padx=10, pady=(10, 15))
+        self.seq_progress.grid(row=6, column=0, sticky="ew", padx=10, pady=(10, 15))
         self.seq_progress.set(0.0)
 
     def setup_regex_tab(self):
         self.tab_regex.grid_columnconfigure(0, weight=1)
-        self.tab_regex.grid_rowconfigure(3, weight=1) # Allow preview textbox to expand
+        self.tab_regex.grid_rowconfigure(4, weight=1) # Erlaubt der Vorschau-Box sich auszudehnen
         
-        # Grid layout for inputs to save space
+        info_lbl = ctk.CTkLabel(
+            self.tab_regex,
+            text="Dieses Werkzeug sucht nach bestimmten Begriffen oder Mustern in Datei- und Ordnernamen und ersetzt diese.\nEs eignet sich hervorragend, um Namensfehler oder unerwünschte Namenszusätze zu korrigieren.",
+            font=ctk.CTkFont(size=12, slant="italic"),
+            text_color="gray",
+            justify="left"
+        )
+        info_lbl.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
+        
+        # Eingabe-Felder in einem inneren Frame gruppiert
         inputs_frame = ctk.CTkFrame(self.tab_regex, fg_color="transparent")
-        inputs_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
+        inputs_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
         inputs_frame.grid_columnconfigure(0, weight=1)
         
         lbl_search = ctk.CTkLabel(
             inputs_frame, 
-            text="Search Pattern (Regex):", 
+            text="Gesuchter Begriff oder Suchmuster (Groß-/Kleinschreibung ignoriert):", 
             font=ctk.CTkFont(size=13, weight="bold")
         )
         lbl_search.grid(row=0, column=0, sticky="w", pady=(5, 2))
@@ -215,15 +233,16 @@ class MasterFileRenamer(ctk.CTk):
         
         lbl_tip = ctk.CTkLabel(
             inputs_frame, 
-            text="Tip: 'SK_?755' matches both SK755 and SK_755", 
+            text="Tipps für Muster:\n• Grabung_?755   -> findet sowohl 'Grabung755' als auch 'Grabung_755' (das '?' macht den Strich optional)\n• _highpoly       -> sucht genau diesen Begriff, um ihn z. B. zu entfernen", 
             font=ctk.CTkFont(size=11, slant="italic"),
-            text_color="gray"
+            text_color="gray",
+            justify="left"
         )
         lbl_tip.grid(row=2, column=0, sticky="w", pady=(0, 5))
         
         lbl_replace = ctk.CTkLabel(
             inputs_frame, 
-            text="Replace with:", 
+            text="Ersetzen durch (feld leerlassen, um den gesuchten Begriff zu löschen):", 
             font=ctk.CTkFont(size=13, weight="bold")
         )
         lbl_replace.grid(row=3, column=0, sticky="w", pady=(5, 2))
@@ -231,14 +250,14 @@ class MasterFileRenamer(ctk.CTk):
         replace_ent = ctk.CTkEntry(inputs_frame, textvariable=self.replace_str)
         replace_ent.grid(row=4, column=0, sticky="ew", pady=(0, 5))
         
-        # Action Buttons row
+        # Buttons für Aktionen
         btn_frame = ctk.CTkFrame(self.tab_regex, fg_color="transparent")
-        btn_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
+        btn_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=5)
         btn_frame.grid_columnconfigure((0, 1), weight=1)
         
         self.regex_preview_btn = ctk.CTkButton(
             btn_frame,
-            text="Preview Changes",
+            text="Änderungen anzeigen (Vorschau)",
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="transparent",
             border_color=self.combo_ext.cget("button_color"),
@@ -250,7 +269,7 @@ class MasterFileRenamer(ctk.CTk):
         
         self.regex_btn = ctk.CTkButton(
             btn_frame, 
-            text="Start Regex Rename", 
+            text="Umbenennung starten", 
             font=ctk.CTkFont(size=12, weight="bold"),
             command=self.start_regex_thread
         )
@@ -258,27 +277,27 @@ class MasterFileRenamer(ctk.CTk):
         
         self.regex_status = ctk.CTkLabel(
             self.tab_regex, 
-            text="Status: Ready", 
+            text="Status: Bereit", 
             font=ctk.CTkFont(size=12),
             text_color="gray"
         )
-        self.regex_status.grid(row=2, column=0, sticky="w", padx=10, pady=(5, 2))
+        self.regex_status.grid(row=3, column=0, sticky="w", padx=10, pady=(5, 2))
         
-        # Preview Text Box
+        # Vorschau Text-Box
         self.regex_preview = ctk.CTkTextbox(
             self.tab_regex,
             font=("Consolas", 10),
             activate_scrollbars=True
         )
-        self.regex_preview.grid(row=3, column=0, sticky="nsew", padx=10, pady=(5, 15))
-        self.regex_preview.insert(ctk.END, "Rename preview will appear here...\n")
+        self.regex_preview.grid(row=4, column=0, sticky="nsew", padx=10, pady=(5, 15))
+        self.regex_preview.insert(ctk.END, "Die Vorschau für die Begriff-Ersetzung wird hier angezeigt...\n")
         self.regex_preview.configure(state="disabled")
 
     def scan_for_extensions(self):
         folder = self.target_path.get()
         if not folder or not os.path.isdir(folder):
-            self.combo_ext.configure(values=["(No folder selected)"])
-            self.combo_ext.set("(No folder selected)")
+            self.combo_ext.configure(values=["(Kein Ordner ausgewählt)"])
+            self.combo_ext.set("(Kein Ordner ausgewählt)")
             self.seq_btn.configure(state="disabled")
             return
         
@@ -294,17 +313,17 @@ class MasterFileRenamer(ctk.CTk):
                 self.combo_ext.configure(values=available)
                 self.combo_ext.set(available[0])
                 self.seq_btn.configure(state="normal")
-                self.seq_status.configure(text=f"Status: Found {len(available)} file types.")
+                self.seq_status.configure(text=f"Status: Scannen erfolgreich. {len(available)} Dateitypen gefunden.")
             else:
-                self.combo_ext.configure(values=["No extensions found"])
-                self.combo_ext.set("No extensions found")
+                self.combo_ext.configure(values=["Keine Dateien im Ordner gefunden"])
+                self.combo_ext.set("Keine Dateien im Ordner gefunden")
                 self.seq_btn.configure(state="disabled")
-                self.seq_status.configure(text="Status: No files with extensions found.")
+                self.seq_status.configure(text="Status: Keine umzubenennenden Dateien vorhanden.")
         except Exception as e:
-            self.combo_ext.configure(values=["Error reading directory"])
-            self.combo_ext.set("Error reading directory")
+            self.combo_ext.configure(values=["Fehler beim Auslesen"])
+            self.combo_ext.set("Fehler beim Auslesen")
             self.seq_btn.configure(state="disabled")
-            self.seq_status.configure(text=f"Status: Scan error: {e}")
+            self.seq_status.configure(text=f"Status: Fehler beim Scannen: {e}")
 
     def generate_sequential_preview(self):
         folder = self.target_path.get()
@@ -314,12 +333,12 @@ class MasterFileRenamer(ctk.CTk):
         self.seq_preview.delete("1.0", ctk.END)
         
         if not folder or not os.path.isdir(folder):
-            self.seq_preview.insert(ctk.END, "Error: Select a valid root folder first.\n")
+            self.seq_preview.insert(ctk.END, "Fehler: Bitte wähle zuerst einen gültigen Ordner aus.\n")
             self.seq_preview.configure(state="disabled")
             return
             
         if not ext or ext not in self.combo_ext.cget("values") or ext.startswith("("):
-            self.seq_preview.insert(ctk.END, "Error: No files found to rename or file type not scanned.\n")
+            self.seq_preview.insert(ctk.END, "Fehler: Keine Dateien gefunden oder ungültiger Dateityp.\n")
             self.seq_preview.configure(state="disabled")
             return
             
@@ -331,31 +350,31 @@ class MasterFileRenamer(ctk.CTk):
             
             file_count = len(files)
             if file_count == 0:
-                self.seq_preview.insert(ctk.END, f"No files ending with '{ext}' found in directory.\n")
+                self.seq_preview.insert(ctk.END, f"Keine Dateien mit der Endung '{ext}' im Ordner gefunden.\n")
                 self.seq_preview.configure(state="disabled")
                 return
 
             padding_length = len(str(file_count))
             
-            self.seq_preview.insert(ctk.END, f"[PREVIEW] Sequential Renaming for '{ext}' files:\n")
-            self.seq_preview.insert(ctk.END, f"Base Name: {base_name}\n")
-            self.seq_preview.insert(ctk.END, f"Found {file_count} files. Zero-padding: {padding_length} digits.\n")
+            self.seq_preview.insert(ctk.END, f"[VORSCHAU] Fortlaufende Nummerierung für '{ext}'-Dateien:\n")
+            self.seq_preview.insert(ctk.END, f"Neuer Basis-Name: {base_name}\n")
+            self.seq_preview.insert(ctk.END, f"Gesamtanzahl: {file_count} Dateien | Stellenanzahl: {padding_length} Stellen.\n")
             self.seq_preview.insert(ctk.END, "="*70 + "\n")
-            self.seq_preview.insert(ctk.END, f"{'OLD FILENAME':<32} --> {'NEW FILENAME':<32}\n")
+            self.seq_preview.insert(ctk.END, f"{'ALTER DATEINAME':<32} --> {'NEUER DATEINAME':<32}\n")
             self.seq_preview.insert(ctk.END, "-"*70 + "\n")
             
-            # Preview first 15 files
+            # Erste 15 Dateien anzeigen
             preview_limit = 15
             for index, filename in enumerate(files, 1):
                 if index > preview_limit:
-                    self.seq_preview.insert(ctk.END, f"... and {file_count - preview_limit} more files.\n")
+                    self.seq_preview.insert(ctk.END, f"... und {file_count - preview_limit} weitere Dateien.\n")
                     break
                 num = str(index).zfill(padding_length)
                 new_name = f"{base_name}{num}{ext}"
                 self.seq_preview.insert(ctk.END, f"{filename[:31]:<32} --> {new_name[:31]:<32}\n")
                 
         except Exception as e:
-            self.seq_preview.insert(ctk.END, f"Error generating preview: {e}\n")
+            self.seq_preview.insert(ctk.END, f"Fehler beim Erstellen der Vorschau: {e}\n")
             
         self.seq_preview.configure(state="disabled")
 
@@ -368,12 +387,12 @@ class MasterFileRenamer(ctk.CTk):
         self.regex_preview.delete("1.0", ctk.END)
         
         if not folder or not os.path.isdir(folder):
-            self.regex_preview.insert(ctk.END, "Error: Select a valid root folder first.\n")
+            self.regex_preview.insert(ctk.END, "Fehler: Bitte wähle zuerst einen gültigen Ordner aus.\n")
             self.regex_preview.configure(state="disabled")
             return
             
         if not pattern:
-            self.regex_preview.insert(ctk.END, "Error: Search pattern cannot be empty.\n")
+            self.regex_preview.insert(ctk.END, "Fehler: Das Suchfeld darf nicht leer sein.\n")
             self.regex_preview.configure(state="disabled")
             return
             
@@ -381,7 +400,7 @@ class MasterFileRenamer(ctk.CTk):
             regex = re.compile(pattern, re.IGNORECASE)
             
             matches = []
-            # Bottom-up walk just like in production renaming
+            # Bottom-Up-Suche (genau wie bei der echten Durchführung)
             for root, dirs, files in os.walk(folder, topdown=False):
                 for name in files + dirs:
                     if regex.search(name):
@@ -391,27 +410,27 @@ class MasterFileRenamer(ctk.CTk):
             
             match_count = len(matches)
             if match_count == 0:
-                self.regex_preview.insert(ctk.END, f"No files or folders matched the pattern '{pattern}'.\n")
+                self.regex_preview.insert(ctk.END, f"Keine Ordner oder Dateien gefunden, die auf das Muster '{pattern}' passen.\n")
                 self.regex_preview.configure(state="disabled")
                 return
 
-            self.regex_preview.insert(ctk.END, f"[PREVIEW] Regex Search & Replace matches:\n")
-            self.regex_preview.insert(ctk.END, f"Pattern: {pattern}  -->  Replace: {new_txt}\n")
-            self.regex_preview.insert(ctk.END, f"Found {match_count} items matching pattern.\n")
+            self.regex_preview.insert(ctk.END, f"[VORSCHAU] Suchen & Ersetzen Trefferliste:\n")
+            self.regex_preview.insert(ctk.END, f"Suche nach: '{pattern}'  -->  Ersetzen durch: '{new_txt}'\n")
+            self.regex_preview.insert(ctk.END, f"Gefunden: {match_count} passende Elemente.\n")
             self.regex_preview.insert(ctk.END, "="*70 + "\n")
-            self.regex_preview.insert(ctk.END, f"{'CURRENT NAME':<32} --> {'PROPOSED NAME':<32}\n")
+            self.regex_preview.insert(ctk.END, f"{'AKTUELLER NAME':<32} --> {'VORSCHLAG':<32}\n")
             self.regex_preview.insert(ctk.END, "-"*70 + "\n")
             
-            # Preview first 15 files/folders
+            # Erste 15 Treffer anzeigen
             preview_limit = 15
             for index, (old_name, new_name) in enumerate(matches, 1):
                 if index > preview_limit:
-                    self.regex_preview.insert(ctk.END, f"... and {match_count - preview_limit} more items.\n")
+                    self.regex_preview.insert(ctk.END, f"... und {match_count - preview_limit} weitere Elemente.\n")
                     break
                 self.regex_preview.insert(ctk.END, f"{old_name[:31]:<32} --> {new_name[:31]:<32}\n")
                 
         except Exception as e:
-            self.regex_preview.insert(ctk.END, f"Error generating preview (Invalid Regex?): {e}\n")
+            self.regex_preview.insert(ctk.END, f"Fehler beim Erstellen der Vorschau (Muster fehlerhaft?): {e}\n")
             
         self.regex_preview.configure(state="disabled")
 
@@ -421,7 +440,7 @@ class MasterFileRenamer(ctk.CTk):
         if not folder or not ext or ext not in self.combo_ext.cget("values"):
             return
             
-        if messagebox.askyesno("Confirm Sequential Rename", f"This will sequentially rename all {ext} files in '{os.path.basename(folder)}'. Proceed?"):
+        if messagebox.askyesno("Bestätigung", f"Möchtest du wirklich alle {ext}-Dateien im Ordner '{os.path.basename(folder)}' fortlaufend umbenennen?\n\nDies ändert die Dateien permanent."):
             self.seq_btn.configure(state="disabled")
             self.browse_btn.configure(state="disabled")
             threading.Thread(target=self.process_sequential, args=(folder, ext), daemon=True).start()
@@ -430,13 +449,13 @@ class MasterFileRenamer(ctk.CTk):
         folder = self.target_path.get()
         pattern = self.search_pattern.get()
         if not folder or not os.path.isdir(folder):
-            messagebox.showerror("Error", "Invalid root folder selected.")
+            messagebox.showerror("Fehler", "Ungültiger Zielordner ausgewählt.")
             return
         if not pattern:
-            messagebox.showerror("Error", "Search pattern cannot be empty.")
+            messagebox.showerror("Fehler", "Das Suchmuster darf nicht leer sein.")
             return
             
-        if messagebox.askyesno("Confirm Regex Rename", "Regex renaming is highly powerful and permanent. Proceed?"):
+        if messagebox.askyesno("Bestätigung", "Suchen & Ersetzen kann weitreichende Änderungen an Dateien und Ordnern vornehmen. Bitte erstelle vorab ein Backup.\n\nFortfahren?"):
             self.regex_btn.configure(state="disabled")
             self.browse_btn.configure(state="disabled")
             threading.Thread(target=self.process_regex, args=(folder, pattern), daemon=True).start()
@@ -456,12 +475,11 @@ class MasterFileRenamer(ctk.CTk):
                 elif action == "update_progress":
                     if progress_bar: progress_bar.set(msg["value"])
                 elif action == "success":
-                    messagebox.showinfo("Success", msg["message"])
+                    messagebox.showinfo("Erfolg", msg["message"])
                     self.reset_ui(tab)
-                    # Trigger a rescan of extensions after sequential renaming finishes
                     self.scan_for_extensions()
                 elif action == "error":
-                    messagebox.showerror("Error", msg["message"])
+                    messagebox.showerror("Fehler", msg["message"])
                     self.reset_ui(tab)
                 self.gui_queue.task_done()
         except queue.Empty:
@@ -473,10 +491,10 @@ class MasterFileRenamer(ctk.CTk):
         if tab == "seq":
             self.seq_btn.configure(state="normal")
             self.seq_progress.set(0.0)
-            self.seq_status.configure(text="Status: Ready")
+            self.seq_status.configure(text="Status: Bereit")
         else:
             self.regex_btn.configure(state="normal")
-            self.regex_status.configure(text="Status: Ready")
+            self.regex_status.configure(text="Status: Bereit")
         self.browse_btn.configure(state="normal")
 
     def process_sequential(self, folder, ext):
@@ -487,12 +505,12 @@ class MasterFileRenamer(ctk.CTk):
             
             file_count = len(files)
             if file_count == 0:
-                self.gui_queue.put({"action": "error", "tab": "seq", "message": "No files found to rename."})
+                self.gui_queue.put({"action": "error", "tab": "seq", "message": "Keine Dateien zum Umbenennen gefunden."})
                 return
 
             padding_length = len(str(file_count))
             
-            # Phase 1: Isolation
+            # Phase 1: Isolation (Namensräume sichern)
             temp_files = []
             for index, filename in enumerate(files, 1):
                 old_path = os.path.join(folder, filename)
@@ -502,14 +520,14 @@ class MasterFileRenamer(ctk.CTk):
                 self.gui_queue.put({
                     "action": "update_status", 
                     "tab": "seq",
-                    "text": f"Status: Isolating namespace ({index}/{file_count})"
+                    "text": f"Status: Sichere Namensraum... ({index}/{file_count})"
                 })
                 
                 os.rename(old_path, temp_path)
                 temp_files.append(temp_path)
                 self.gui_queue.put({"action": "update_progress", "tab": "seq", "value": (index / file_count) * 0.5})
 
-            # Phase 2: Reconstruction
+            # Phase 2: Reconstruction (Echtes Umbenennen)
             total = 0
             for index, temp_path in enumerate(temp_files, 1):
                 num = str(index).zfill(padding_length)
@@ -519,7 +537,7 @@ class MasterFileRenamer(ctk.CTk):
                 self.gui_queue.put({
                     "action": "update_status", 
                     "tab": "seq",
-                    "text": f"Status: Reconstructing {new_name}"
+                    "text": f"Status: Schreibe Dateiname... {new_name}"
                 })
                 
                 os.rename(temp_path, new_path)
@@ -529,10 +547,10 @@ class MasterFileRenamer(ctk.CTk):
             self.gui_queue.put({
                 "action": "success", 
                 "tab": "seq",
-                "message": f"Successfully renamed {total} files.\nFormat: {base_name}{'0'*padding_length}{ext}"
+                "message": f"Erfolgreich {total} Dateien umbenannt!\n\nFormat: {base_name}{'0'*padding_length}{ext}"
             })
         except Exception as e:
-            self.gui_queue.put({"action": "error", "tab": "seq", "message": f"Error: {e}"})
+            self.gui_queue.put({"action": "error", "tab": "seq", "message": f"Fehler aufgetreten: {e}"})
 
     def process_regex(self, folder, pattern):
         new_txt = self.replace_str.get()
@@ -540,7 +558,7 @@ class MasterFileRenamer(ctk.CTk):
         try:
             regex = re.compile(pattern, re.IGNORECASE)
             
-            # Bottom-up walk is required for directories
+            # Bottom-Up-Walk ist zwingend nötig für Ordnerstrukturen
             for root, dirs, files in os.walk(folder, topdown=False):
                 for name in files + dirs:
                     if regex.search(name):
@@ -554,16 +572,16 @@ class MasterFileRenamer(ctk.CTk):
                             self.gui_queue.put({
                                 "action": "update_status", 
                                 "tab": "regex",
-                                "text": f"Status: Renamed {count} items (Last: {new_name})"
+                                "text": f"Status: Umbenannt: {count} Objekte (Zuletzt: {new_name})"
                             })
                             
             self.gui_queue.put({
                 "action": "success", 
                 "tab": "regex",
-                "message": f"Successfully renamed {count} folders/files using regex."
+                "message": f"Erfolgreich {count} Dateien/Ordner mittels Suchmuster umbenannt."
             })
         except Exception as e:
-            self.gui_queue.put({"action": "error", "tab": "regex", "message": f"Error: {e}"})
+            self.gui_queue.put({"action": "error", "tab": "regex", "message": f"Fehler aufgetreten: {e}"})
 
 if __name__ == "__main__":
     app = MasterFileRenamer()
