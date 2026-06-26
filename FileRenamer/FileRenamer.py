@@ -1,5 +1,6 @@
 import os
 import re
+import uuid
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import threading
@@ -9,12 +10,12 @@ import queue
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
-class DynamicReplacer(ctk.CTk):
+class MasterFileRenamer(ctk.CTk):
     def __init__(self):
         super().__init__()
         
-        self.title("Dynamic Regex Replacer")
-        self.geometry("650x550")
+        self.title("Master File Renamer")
+        self.geometry("700x550")
         self.resizable(True, True)
         
         self.target_path = ctk.StringVar()
@@ -30,6 +31,7 @@ class DynamicReplacer(ctk.CTk):
         self.main_frame = ctk.CTkFrame(self, corner_radius=15)
         self.main_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(2, weight=1) # Allow tabview to grow
         
         # Header Section Frame (Title + Dark Mode Switch)
         self.header_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
@@ -43,14 +45,14 @@ class DynamicReplacer(ctk.CTk):
         
         self.title_label = ctk.CTkLabel(
             self.title_col, 
-            text="Dynamic Regex Replacer", 
+            text="Master File Renamer", 
             font=ctk.CTkFont(family="Helvetica", size=24, weight="bold")
         )
         self.title_label.grid(row=0, column=0, sticky="w")
         
         self.subtitle_label = ctk.CTkLabel(
             self.title_col, 
-            text="Recursive Bottom-Up Regex Search & Replace Renamer", 
+            text="Unified Sequential Renaming & Dynamic Regex Replacing Utility", 
             font=ctk.CTkFont(size=12),
             text_color="gray"
         )
@@ -70,24 +72,24 @@ class DynamicReplacer(ctk.CTk):
         )
         self.theme_switch.grid(row=0, column=1, sticky="e", pady=5)
         
-        # 1. Folder Selection Frame
-        self.path_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        # Shared Folder Selection Frame
+        self.path_frame = ctk.CTkFrame(self.main_frame)
         self.path_frame.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
         self.path_frame.grid_columnconfigure(0, weight=1)
         
         self.path_label = ctk.CTkLabel(
             self.path_frame, 
-            text="1. Select Root Folder", 
+            text="Root Directory (Target Folder)", 
             font=ctk.CTkFont(size=13, weight="bold")
         )
-        self.path_label.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 5))
+        self.path_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(10, 2))
         
         self.path_entry = ctk.CTkEntry(
             self.path_frame, 
             textvariable=self.target_path, 
-            placeholder_text="Select a root folder..."
+            placeholder_text="Select a folder to scan..."
         )
-        self.path_entry.grid(row=1, column=0, sticky="ew", padx=(0, 10))
+        self.path_entry.grid(row=1, column=0, sticky="ew", padx=(15, 10), pady=(0, 15))
         
         self.browse_btn = ctk.CTkButton(
             self.path_frame, 
@@ -95,68 +97,24 @@ class DynamicReplacer(ctk.CTk):
             width=100, 
             command=self.browse_folder
         )
-        self.browse_btn.grid(row=1, column=1, sticky="e")
+        self.browse_btn.grid(row=1, column=1, sticky="e", padx=(0, 15), pady=(0, 15))
         
-        # 2. Search Pattern Frame
-        self.search_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.search_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
-        self.search_frame.grid_columnconfigure(0, weight=1)
+        # Tab View
+        self.tabview = ctk.CTkTabview(self.main_frame)
+        self.tabview.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="nsew")
         
-        self.search_label = ctk.CTkLabel(
-            self.search_frame, 
-            text="2. Search Pattern (Regular Expression)", 
-            font=ctk.CTkFont(size=13, weight="bold")
-        )
-        self.search_label.grid(row=0, column=0, sticky="w", pady=(0, 5))
+        # Add tabs
+        self.tab_seq = self.tabview.add("Smart Sequential Rename")
+        self.tab_regex = self.tabview.add("Dynamic Regex Replace")
         
-        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_pattern)
-        self.search_entry.grid(row=1, column=0, sticky="ew")
+        # Setup Tab 1: Sequential Rename
+        self.setup_sequential_tab()
         
-        self.tip_label = ctk.CTkLabel(
-            self.search_frame, 
-            text="Tip: 'SK_?755' finds both SK755 and SK_755", 
-            font=ctk.CTkFont(size=11, slant="italic"),
-            text_color="gray"
-        )
-        self.tip_label.grid(row=2, column=0, sticky="w", pady=(2, 0))
+        # Setup Tab 2: Regex Replace
+        self.setup_regex_tab()
         
-        # 3. Replace Pattern Frame
-        self.replace_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.replace_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
-        self.replace_frame.grid_columnconfigure(0, weight=1)
-        
-        self.replace_label = ctk.CTkLabel(
-            self.replace_frame, 
-            text="3. Replace with", 
-            font=ctk.CTkFont(size=13, weight="bold")
-        )
-        self.replace_label.grid(row=0, column=0, sticky="w", pady=(0, 5))
-        
-        self.replace_entry = ctk.CTkEntry(self.replace_frame, textvariable=self.replace_str)
-        self.replace_entry.grid(row=1, column=0, sticky="ew")
-        
-        # Status Label Frame
-        self.status_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.status_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
-        self.status_frame.grid_columnconfigure(0, weight=1)
-        
-        self.status_label = ctk.CTkLabel(
-            self.status_frame, 
-            text="Status: Ready", 
-            font=ctk.CTkFont(size=12),
-            text_color="gray"
-        )
-        self.status_label.grid(row=0, column=0, sticky="w")
-        
-        # Start Action Button
-        self.start_btn = ctk.CTkButton(
-            self.main_frame, 
-            text="Start Dynamic Rename", 
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=40,
-            command=self.start_thread
-        )
-        self.start_btn.grid(row=5, column=0, padx=20, pady=(10, 20), sticky="ew")
+        # Trace folder path updates to scan extensions
+        self.target_path.trace_add("write", lambda *args: self.scan_for_extensions())
         
         # Start GUI queue consumer
         self.process_queue()
@@ -170,56 +128,253 @@ class DynamicReplacer(ctk.CTk):
         if folder:
             self.target_path.set(folder)
 
-    def start_thread(self):
-        if not self.target_path.get() or not os.path.exists(self.target_path.get()):
-            messagebox.showerror("Error", "Invalid root folder path selected.")
+    def setup_sequential_tab(self):
+        self.tab_seq.grid_columnconfigure(0, weight=1)
+        
+        lbl = ctk.CTkLabel(
+            self.tab_seq, 
+            text="Select File Type to rename:", 
+            font=ctk.CTkFont(size=13, weight="bold")
+        )
+        lbl.grid(row=0, column=0, sticky="w", padx=10, pady=(15, 5))
+        
+        self.combo_ext = ctk.CTkOptionMenu(
+            self.tab_seq,
+            values=["(No folder selected)"]
+        )
+        self.combo_ext.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 15))
+        
+        # Status & Progress Frame inside Tab
+        self.seq_status = ctk.CTkLabel(
+            self.tab_seq, 
+            text="Status: Ready", 
+            font=ctk.CTkFont(size=12),
+            text_color="gray"
+        )
+        self.seq_status.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 5))
+        
+        self.seq_progress = ctk.CTkProgressBar(self.tab_seq)
+        self.seq_progress.grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 15))
+        self.seq_progress.set(0.0)
+        
+        self.seq_btn = ctk.CTkButton(
+            self.tab_seq, 
+            text="Start Smart Rename", 
+            font=ctk.CTkFont(size=13, weight="bold"),
+            height=35,
+            command=self.start_sequential_thread,
+            state="disabled"
+        )
+        self.seq_btn.grid(row=4, column=0, sticky="ew", padx=10, pady=10)
+
+    def setup_regex_tab(self):
+        self.tab_regex.grid_columnconfigure(0, weight=1)
+        
+        lbl_search = ctk.CTkLabel(
+            self.tab_regex, 
+            text="Search Pattern (Regex):", 
+            font=ctk.CTkFont(size=13, weight="bold")
+        )
+        lbl_search.grid(row=0, column=0, sticky="w", padx=10, pady=(15, 2))
+        
+        search_ent = ctk.CTkEntry(self.tab_regex, textvariable=self.search_pattern)
+        search_ent.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 5))
+        
+        lbl_tip = ctk.CTkLabel(
+            self.tab_regex, 
+            text="Tip: 'SK_?755' matches both SK755 and SK_755", 
+            font=ctk.CTkFont(size=11, slant="italic"),
+            text_color="gray"
+        )
+        lbl_tip.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 10))
+        
+        lbl_replace = ctk.CTkLabel(
+            self.tab_regex, 
+            text="Replace with:", 
+            font=ctk.CTkFont(size=13, weight="bold")
+        )
+        lbl_replace.grid(row=3, column=0, sticky="w", padx=10, pady=(5, 2))
+        
+        replace_ent = ctk.CTkEntry(self.tab_regex, textvariable=self.replace_str)
+        replace_ent.grid(row=4, column=0, sticky="ew", padx=10, pady=(0, 15))
+        
+        self.regex_status = ctk.CTkLabel(
+            self.tab_regex, 
+            text="Status: Ready", 
+            font=ctk.CTkFont(size=12),
+            text_color="gray"
+        )
+        self.regex_status.grid(row=5, column=0, sticky="w", padx=10, pady=(0, 5))
+        
+        self.regex_btn = ctk.CTkButton(
+            self.tab_regex, 
+            text="Start Regex Rename", 
+            font=ctk.CTkFont(size=13, weight="bold"),
+            height=35,
+            command=self.start_regex_thread
+        )
+        self.regex_btn.grid(row=6, column=0, sticky="ew", padx=10, pady=10)
+
+    def scan_for_extensions(self):
+        folder = self.target_path.get()
+        if not folder or not os.path.isdir(folder):
+            self.combo_ext.configure(values=["(No folder selected)"])
+            self.combo_ext.set("(No folder selected)")
+            self.seq_btn.configure(state="disabled")
+            return
+        
+        try:
+            extensions = set()
+            for f in os.listdir(folder):
+                if os.path.isfile(os.path.join(folder, f)):
+                    ext = os.path.splitext(f)[1].lower()
+                    if ext: extensions.add(ext)
+            
+            available = sorted(list(extensions))
+            if available:
+                self.combo_ext.configure(values=available)
+                self.combo_ext.set(available[0])
+                self.seq_btn.configure(state="normal")
+                self.seq_status.configure(text=f"Status: Found {len(available)} file types.")
+            else:
+                self.combo_ext.configure(values=["No extensions found"])
+                self.combo_ext.set("No extensions found")
+                self.seq_btn.configure(state="disabled")
+                self.seq_status.configure(text="Status: No files with extensions found.")
+        except Exception as e:
+            self.combo_ext.configure(values=["Error reading directory"])
+            self.combo_ext.set("Error reading directory")
+            self.seq_btn.configure(state="disabled")
+            self.seq_status.configure(text=f"Status: Scan error: {e}")
+
+    def start_sequential_thread(self):
+        folder = self.target_path.get()
+        ext = self.combo_ext.get()
+        if not folder or not ext or ext not in self.combo_ext.cget("values"):
             return
             
-        if not self.search_pattern.get():
-            messagebox.showerror("Error", "Please enter a valid search pattern.")
-            return
-            
-        if messagebox.askyesno("Confirm", "Regex renaming is highly powerful and permanent. Are you sure you have backups and wish to proceed?"):
-            self.start_btn.configure(state="disabled")
+        if messagebox.askyesno("Confirm Sequential Rename", f"This will sequentially rename all {ext} files in '{os.path.basename(folder)}'. Proceed?"):
+            self.seq_btn.configure(state="disabled")
             self.browse_btn.configure(state="disabled")
-            threading.Thread(target=self.process, daemon=True).start()
+            threading.Thread(target=self.process_sequential, args=(folder, ext), daemon=True).start()
+
+    def start_regex_thread(self):
+        folder = self.target_path.get()
+        pattern = self.search_pattern.get()
+        if not folder or not os.path.isdir(folder):
+            messagebox.showerror("Error", "Invalid root folder selected.")
+            return
+        if not pattern:
+            messagebox.showerror("Error", "Search pattern cannot be empty.")
+            return
+            
+        if messagebox.askyesno("Confirm Regex Rename", "Regex renaming is highly powerful and permanent. Proceed?"):
+            self.regex_btn.configure(state="disabled")
+            self.browse_btn.configure(state="disabled")
+            threading.Thread(target=self.process_regex, args=(folder, pattern), daemon=True).start()
 
     def process_queue(self):
         try:
             while True:
                 msg = self.gui_queue.get_nowait()
                 action = msg.get("action")
+                tab = msg.get("tab")
+                
+                status_lbl = self.seq_status if tab == "seq" else self.regex_status
+                progress_bar = self.seq_progress if tab == "seq" else None
+                
                 if action == "update_status":
-                    self.status_label.configure(text=msg["text"])
+                    status_lbl.configure(text=msg["text"])
+                elif action == "update_progress":
+                    if progress_bar: progress_bar.set(msg["value"])
                 elif action == "success":
                     messagebox.showinfo("Success", msg["message"])
-                    self.reset_ui()
+                    self.reset_ui(tab)
+                    # Trigger a rescan of extensions after sequential renaming finishes
+                    if tab == "seq":
+                        self.scan_for_extensions()
                 elif action == "error":
                     messagebox.showerror("Error", msg["message"])
-                    self.reset_ui()
+                    self.reset_ui(tab)
                 self.gui_queue.task_done()
         except queue.Empty:
             pass
         finally:
             self.after(100, self.process_queue)
 
-    def reset_ui(self):
-        self.start_btn.configure(state="normal")
+    def reset_ui(self, tab):
+        if tab == "seq":
+            self.seq_btn.configure(state="normal")
+            self.seq_progress.set(0.0)
+            self.seq_status.configure(text="Status: Ready")
+        else:
+            self.regex_btn.configure(state="normal")
+            self.regex_status.configure(text="Status: Ready")
         self.browse_btn.configure(state="normal")
-        self.status_label.configure(text="Status: Ready")
 
-    def process(self):
-        root_dir = self.target_path.get()
-        pattern = self.search_pattern.get()
+    def process_sequential(self, folder, ext):
+        base_name = os.path.basename(os.path.normpath(folder)) + "_"
+        try:
+            files = sorted([f for f in os.listdir(folder) 
+                            if f.lower().endswith(ext) and os.path.isfile(os.path.join(folder, f))])
+            
+            file_count = len(files)
+            if file_count == 0:
+                self.gui_queue.put({"action": "error", "tab": "seq", "message": "No files found to rename."})
+                return
+
+            padding_length = len(str(file_count))
+            
+            # Phase 1: Isolation
+            temp_files = []
+            for index, filename in enumerate(files, 1):
+                old_path = os.path.join(folder, filename)
+                temp_name = f"atomic_{uuid.uuid4().hex}.tmp"
+                temp_path = os.path.join(folder, temp_name)
+                
+                self.gui_queue.put({
+                    "action": "update_status", 
+                    "tab": "seq",
+                    "text": f"Status: Isolating namespace ({index}/{file_count})"
+                })
+                
+                os.rename(old_path, temp_path)
+                temp_files.append(temp_path)
+                self.gui_queue.put({"action": "update_progress", "tab": "seq", "value": (index / file_count) * 0.5})
+
+            # Phase 2: Reconstruction
+            total = 0
+            for index, temp_path in enumerate(temp_files, 1):
+                num = str(index).zfill(padding_length)
+                new_name = f"{base_name}{num}{ext}"
+                new_path = os.path.join(folder, new_name)
+                
+                self.gui_queue.put({
+                    "action": "update_status", 
+                    "tab": "seq",
+                    "text": f"Status: Reconstructing {new_name}"
+                })
+                
+                os.rename(temp_path, new_path)
+                total += 1
+                self.gui_queue.put({"action": "update_progress", "tab": "seq", "value": 0.5 + ((index / file_count) * 0.5)})
+
+            self.gui_queue.put({
+                "action": "success", 
+                "tab": "seq",
+                "message": f"Successfully renamed {total} files.\nFormat: {base_name}{'0'*padding_length}{ext}"
+            })
+        except Exception as e:
+            self.gui_queue.put({"action": "error", "tab": "seq", "message": f"Error: {e}"})
+
+    def process_regex(self, folder, pattern):
         new_txt = self.replace_str.get()
         count = 0
-        
         try:
-            # Compile regex to validate early
             regex = re.compile(pattern, re.IGNORECASE)
             
-            # Bottom-up is required so directory changes do not break subsequent walks
-            for root, dirs, files in os.walk(root_dir, topdown=False):
+            # Bottom-up walk is required for directories
+            for root, dirs, files in os.walk(folder, topdown=False):
                 for name in files + dirs:
                     if regex.search(name):
                         new_name = regex.sub(new_txt, name)
@@ -231,16 +386,18 @@ class DynamicReplacer(ctk.CTk):
                             count += 1
                             self.gui_queue.put({
                                 "action": "update_status", 
+                                "tab": "regex",
                                 "text": f"Status: Renamed {count} items (Last: {new_name})"
                             })
                             
             self.gui_queue.put({
                 "action": "success", 
-                "message": f"Successfully renamed {count} folders and files."
+                "tab": "regex",
+                "message": f"Successfully renamed {count} folders/files using regex."
             })
         except Exception as e:
-            self.gui_queue.put({"action": "error", "message": f"Error: {e}"})
+            self.gui_queue.put({"action": "error", "tab": "regex", "message": f"Error: {e}"})
 
 if __name__ == "__main__":
-    app = DynamicReplacer()
+    app = MasterFileRenamer()
     app.mainloop()

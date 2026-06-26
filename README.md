@@ -47,17 +47,13 @@ pip install --upgrade customtkinter trimesh[easy] numpy pillow bagit pyyaml
 *   **Function**: Scans GLB files and updates their internal naming metadata (meshes, nodes, materials, animations, skins) to align with their actual disk filename.
 *   **How to use**: Select a folder to **Scan**, inspect the names, and click **Patch Internal Names** to synchronize metadata.
 
-### 🔄 Dynamic Regex Replacer
+### 🔄 Master File Renamer
 *   **Directory:** [FileRenamer/](file:///c:/Users/langm/sciebo/BCDH_Projektbox/1_BCDH%20Intern/Scripts/3D%20Data%20Management%20Suite/FileRenamer)
 *   **File Name:** `FileRenamer.py`
-*   **Function**: Recursively renames directories and files using regular expressions. It runs bottom-up to keep folder paths valid during the renaming process.
-*   **How to use**: Select the root folder, define a search pattern (e.g., `SK_?755` matches both `SK755` and `SK_755`), specify a replacement string, and click **Start Dynamic Rename**.
-
-### 🔢 Smart File Renamer
-*   **Directory:** [JPG_FileRenamer/](file:///c:/Users/langm/sciebo/BCDH_Projektbox/1_BCDH%20Intern/Scripts/3D%20Data%20Management%20Suite/JPG_FileRenamer)
-*   **File Name:** `JPG_FileRenamer.py`
-*   **Function**: Sequentially numbers files (e.g., textures or documentation photos) using the parent directory name as a prefix, calculating padding digits automatically. It uses UUID-isolation to avoid file collisions or overwrites.
-*   **How to use**: Select a folder, choose the file extension type (e.g., `.jpg`), and click **Start Smart Rename**.
+*   **Function**: A unified interface containing two file-renaming modes:
+    1.  **Smart Sequential Rename**: Standardizes file names by assigning sequential numbering based on the parent folder name. Uses dynamic zero-padding and UUID namespace isolation for collision safety.
+    2.  **Dynamic Regex Replace**: Recursively replaces folder and filename patterns using regular expressions (operating bottom-up to maintain valid directories).
+*   **How to use**: Select your **Root Directory** at the top. Switch between tabs to choose either **Smart Sequential Rename** or **Dynamic Regex Replace**, set options/inputs, and start the rename operation.
 
 ### 🍪 BAG-ETTE (Packaging Tool)
 *   **Directory:** [BAG_ETTE/](file:///c:/Users/langm/sciebo/BCDH_Projektbox/1_BCDH%20Intern/Scripts/3D%20Data%20Management%20Suite/BAG_ETTE)
@@ -68,5 +64,5 @@ pip install --upgrade customtkinter trimesh[easy] numpy pillow bagit pyyaml
 ---
 
 ## 🛡️ Archival Safety Guidelines
-*   **Backups**: Always keep a backup copy of your data directories before running batch renaming (`FileRenamer`, `JPG_FileRenamer`) or patching internal metadata (`GLB_FileRenamer`).
+*   **Backups**: Always keep a backup copy of your data directories before running batch renaming (`FileRenamer`) or patching internal metadata (`GLB_FileRenamer`).
 *   **Integrity Reports**: We recommend generating a `Hash-Brownie` integrity report *before* and *after* moving files to ensure no data is lost or altered during transfers.
