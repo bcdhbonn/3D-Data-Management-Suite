@@ -115,3 +115,10 @@ Each tool performs a specific, critical task in validating, normalising, and pac
 1. **Keep Backups**: Always create a backup copy of your raw data before running batch renaming (`FileRenamer`) or patching internal binaries (`GLB_FileRenamer`).
 2. **End-to-End Hash Validation**: Generate an integrity report with `Hash-Brownie` immediately upon data ingest. Run the validation checks again after copying or migrating data to guarantee zero transmission losses.
 3. **Validate Before Packing**: Run the `MeshAnalyzer` before packaging folders with `BAG-ETTE` to intercept damaged model geometries before they are committed to long-term storage.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
