@@ -8,18 +8,17 @@ import threading
 import queue
 from datetime import datetime
 
+# Set theme and appearance
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
+
 class BagEtte(ctk.CTk):
     def __init__(self):
         super().__init__()
         
-        self.title("BAG-ETTE")
-        self.geometry("900x800")
+        self.title("BAG-ETTE | Archival Packaging Utility")
+        self.geometry("900x750")
         self.resizable(True, True)
-        
-        # Sci-Fi Retro Terminal Styling
-        self.bg_color = "#001100"
-        self.fg_color = "#33ff33"
-        self.configure(fg_color=self.bg_color)
         
         self.target_path = ctk.StringVar()
         self.metadata_file = ctk.StringVar()
@@ -29,102 +28,111 @@ class BagEtte(ctk.CTk):
         self.full_metadata = {}
         self.gui_queue = queue.Queue()
         
-        # Configure layout grids
+        # Configure layout grids on root window
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
         # Main container frame
-        self.main_frame = ctk.CTkFrame(
-            self, 
-            corner_radius=15, 
-            fg_color="#001800",
-            border_color=self.fg_color,
-            border_width=1
-        )
+        self.main_frame = ctk.CTkFrame(self, corner_radius=15)
         self.main_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(3, weight=1) # Allow scrollable frame to grow
         
-        # Header
-        self.header_label = ctk.CTkLabel(
-            self.main_frame,
-            text="> BAG-ETTE V1",
-            font=ctk.CTkFont(family="Courier", size=24, weight="bold"),
-            text_color=self.fg_color
-        )
-        self.header_label.grid(row=0, column=0, pady=20, sticky="n")
+        # Header Section Frame (Title + Dark Mode Switch)
+        self.header_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.header_frame.grid(row=0, column=0, padx=20, pady=(20, 5), sticky="ew")
+        self.header_frame.grid_columnconfigure(0, weight=1)
+        self.header_frame.grid_columnconfigure(1, weight=0)
         
+        # Title and Subtitle
+        self.title_col = ctk.CTkFrame(self.header_frame, fg_color="transparent")
+        self.title_col.grid(row=0, column=0, sticky="w")
+        
+        self.title_label = ctk.CTkLabel(
+            self.title_col, 
+            text="BAG-ETTE", 
+            font=ctk.CTkFont(family="Helvetica", size=28, weight="bold")
+        )
+        self.title_label.grid(row=0, column=0, sticky="w")
+        
+        self.subtitle_label = ctk.CTkLabel(
+            self.title_col, 
+            text="Standardized Archival BagIt Packager", 
+            font=ctk.CTkFont(size=14),
+            text_color="gray"
+        )
+        self.subtitle_label.grid(row=1, column=0, sticky="w")
+        
+        # Toggle Switch for Dark Mode
+        initial_mode = ctk.get_appearance_mode()
+        self.switch_var = ctk.StringVar(value=initial_mode)
+        
+        self.theme_switch = ctk.CTkSwitch(
+            self.header_frame,
+            text="Dark Mode",
+            command=self.toggle_theme,
+            variable=self.switch_var,
+            onvalue="Dark",
+            offvalue="Light",
+            font=ctk.CTkFont(size=14)
+        )
+        self.theme_switch.grid(row=0, column=1, sticky="e", padx=10)
+        if initial_mode == "Dark":
+            self.theme_switch.select()
+        else:
+            self.theme_switch.deselect()
+            
         # Inputs Frame
-        self.inputs_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.inputs_frame.grid(row=1, column=0, padx=20, pady=5, sticky="ew")
+        self.inputs_frame = ctk.CTkFrame(self.main_frame)
+        self.inputs_frame.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
         self.inputs_frame.grid_columnconfigure(1, weight=1)
         
-        self.create_simple_row(0, "SRC_DIR:", self.target_path, "BROWSE", lambda: self.target_path.set(filedialog.askdirectory()))
-        self.create_simple_row(1, "YAML_MD :", self.metadata_file, "LOAD", self.load_metadata_fields)
+        self.create_simple_row(0, "Source Dir:", self.target_path, "Browse", lambda: self.target_path.set(filedialog.askdirectory()))
+        self.create_simple_row(1, "Metadata YAML:", self.metadata_file, "Load File", self.load_metadata_fields)
         
-        # Ingredients / Selection Frame
+        # Selection Frame Label
         self.selection_label = ctk.CTkLabel(
             self.main_frame,
-            text="SELECT_INGREDIENTS:",
-            font=ctk.CTkFont(family="Courier", size=12, weight="bold"),
-            text_color=self.fg_color
+            text="Select Metadata Fields to Include:",
+            font=ctk.CTkFont(size=15, weight="bold")
         )
-        self.selection_label.grid(row=2, column=0, padx=20, pady=(15, 5), sticky="w")
+        self.selection_label.grid(row=2, column=0, padx=25, pady=(15, 5), sticky="w")
         
-        self.scrollable_frame = ctk.CTkScrollableFrame(
-            self.main_frame,
-            height=150,
-            fg_color="#000800",
-            scrollbar_button_color="#004400",
-            scrollbar_button_hover_color="#006600",
-            border_color=self.fg_color,
-            border_width=1
-        )
+        # Scrollable Frame for fields
+        self.scrollable_frame = ctk.CTkScrollableFrame(self.main_frame, height=150)
         self.scrollable_frame.grid(row=3, column=0, padx=20, pady=5, sticky="nsew")
         self.scrollable_frame.grid_columnconfigure((0, 1), weight=1)
         
         # Options & Run Row
         self.options_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.options_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        self.options_frame.grid(row=4, column=0, padx=20, pady=15, sticky="ew")
         self.options_frame.grid_columnconfigure(2, weight=1)
         
         self.cb_inplace = ctk.CTkCheckBox(
             self.options_frame,
-            text="[IN_PLACE]",
+            text="In-Place Packaging",
             variable=self.in_place,
-            text_color=self.fg_color,
-            fg_color="#002200",
-            check_color=self.fg_color,
-            hover_color="#003300",
-            font=ctk.CTkFont(family="Courier", size=12)
+            font=ctk.CTkFont(size=13)
         )
-        self.cb_inplace.grid(row=0, column=0, padx=(0, 20), sticky="w")
+        self.cb_inplace.grid(row=0, column=0, padx=(10, 20), sticky="w")
         
         self.cb_zip = ctk.CTkCheckBox(
             self.options_frame,
-            text="[ZIP_WRAP]",
+            text="Wrap in ZIP Archive",
             variable=self.do_zip,
-            text_color=self.fg_color,
-            fg_color="#002200",
-            check_color=self.fg_color,
-            hover_color="#003300",
-            font=ctk.CTkFont(family="Courier", size=12)
+            font=ctk.CTkFont(size=13)
         )
         self.cb_zip.grid(row=0, column=1, padx=(0, 20), sticky="w")
         
         self.start_btn = ctk.CTkButton(
             self.options_frame,
-            text="[ BAKE BAG-ETTE ]",
-            font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
-            text_color=self.fg_color,
-            fg_color="#002200",
-            hover_color="#004400",
-            border_color=self.fg_color,
-            border_width=1,
-            height=35,
-            command=self.start_thread
+            text="Bake Bag-It Package",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            height=38,
+            command=self.start_thread,
+            width=180
         )
-        self.start_btn.grid(row=0, column=3, sticky="e")
+        self.start_btn.grid(row=0, column=3, sticky="e", padx=(0, 10))
         
         # Log & Progress Frame
         self.log_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
@@ -134,68 +142,51 @@ class BagEtte(ctk.CTk):
         self.log_widget = ctk.CTkTextbox(
             self.log_frame, 
             height=150, 
-            font=("Courier", 10), 
-            text_color=self.fg_color, 
-            fg_color="#000500",
-            border_color=self.fg_color,
-            border_width=1,
+            font=("Consolas", 11) if os.name == 'nt' else ("Courier", 11),
             activate_scrollbars=True
         )
         self.log_widget.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         self.log_widget.configure(state="disabled")
         
-        self.progress = ctk.CTkProgressBar(
-            self.log_frame,
-            progress_color=self.fg_color,
-            fg_color="#002200"
-        )
+        self.progress = ctk.CTkProgressBar(self.log_frame)
         self.progress.grid(row=1, column=0, sticky="ew")
         self.progress.set(0.0)
         
         self.process_queue()
 
     def toggle_theme(self):
-        pass
+        new_theme = self.switch_var.get()
+        ctk.set_appearance_mode(new_theme)
 
     def create_simple_row(self, row_idx, label_txt, var, btn_txt, cmd):
         lbl = ctk.CTkLabel(
             self.inputs_frame, 
             text=label_txt, 
-            font=ctk.CTkFont(family="Courier", size=12),
-            text_color=self.fg_color,
-            width=80,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            width=120,
             anchor="w"
         )
-        lbl.grid(row=row_idx, column=0, padx=(0, 10), pady=5, sticky="w")
+        lbl.grid(row=row_idx, column=0, padx=15, pady=10, sticky="w")
         
         ent = ctk.CTkEntry(
             self.inputs_frame,
             textvariable=var,
-            font=("Courier", 11),
-            text_color=self.fg_color,
-            fg_color="#002200",
-            border_color=self.fg_color,
-            border_width=1,
-            insert_color=self.fg_color
+            font=ctk.CTkFont(size=13)
         )
-        ent.grid(row=row_idx, column=1, padx=(0, 10), pady=5, sticky="ew")
+        ent.grid(row=row_idx, column=1, padx=(0, 15), pady=10, sticky="ew")
         
         btn = ctk.CTkButton(
             self.inputs_frame,
             text=btn_txt,
-            font=ctk.CTkFont(family="Courier", size=11, weight="bold"),
-            text_color=self.fg_color,
-            fg_color="#002200",
-            hover_color="#004400",
-            border_color=self.fg_color,
-            border_width=1,
-            width=80,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            width=100,
             command=cmd
         )
-        btn.grid(row=row_idx, column=2, pady=5, sticky="e")
+        btn.grid(row=row_idx, column=2, padx=(0, 15), pady=10, sticky="e")
 
-    def load_metadata_fields(self):
-        path = filedialog.askopenfilename(filetypes=[("MD/YAML", "*.md *.yaml")])
+    def load_metadata_fields(self, path=None):
+        if not path:
+            path = filedialog.askopenfilename(filetypes=[("MD/YAML", "*.md *.yaml")])
         if not path: return
         self.metadata_file.set(path)
         try:
@@ -213,23 +204,19 @@ class BagEtte(ctk.CTk):
                     self.scrollable_frame,
                     text=key,
                     variable=var,
-                    text_color=self.fg_color,
-                    fg_color="#002200",
-                    check_color=self.fg_color,
-                    hover_color="#003300",
-                    font=ctk.CTkFont(family="Courier", size=11)
+                    font=ctk.CTkFont(size=13)
                 )
-                cb.grid(row=i//2, column=i%2, sticky="w", padx=20, pady=5)
-            self.log(f"METADATA LOADED: {len(self.full_metadata)} FIELDS FOUND.")
+                cb.grid(row=i//2, column=i%2, sticky="w", padx=20, pady=8)
+            self.log(f"Metadata file loaded: {len(self.full_metadata)} fields found.")
         except Exception as e:
-            self.log(f"PARSE_ERROR: {e}")
+            self.log(f"YAML Parse Error: {e}")
 
     def log(self, msg):
         self.gui_queue.put({"action": "log", "text": msg})
 
     def start_thread(self):
         if not self.target_path.get() or not os.path.exists(self.target_path.get()):
-            messagebox.showwarning("INPUT MISSING", "Please select a valid source directory.")
+            messagebox.showwarning("Input Missing", "Please select a valid source directory.")
             return
         self.start_btn.configure(state="disabled")
         threading.Thread(target=self.process, daemon=True).start()
@@ -247,11 +234,11 @@ class BagEtte(ctk.CTk):
                 elif action == "progress":
                     self.progress.set(msg["value"])
                 elif action == "success":
-                    messagebox.showinfo("DONE", msg["message"])
+                    messagebox.showinfo("Baking Done", msg["message"])
                     self.start_btn.configure(state="normal")
                     self.progress.set(0.0)
                 elif action == "error":
-                    messagebox.showerror("ERROR", msg["message"])
+                    messagebox.showerror("Error", msg["message"])
                     self.start_btn.configure(state="normal")
                     self.progress.set(0.0)
                 self.gui_queue.task_done()
@@ -265,7 +252,7 @@ class BagEtte(ctk.CTk):
         work_dir = src if self.in_place.get() else f"{src.rstrip('/\\\\')}_Archive"
         try:
             if not self.in_place.get():
-                self.log("KNEADING DOUGH (COPYING FILES)...")
+                self.log("Kneading dough (copying files to archive)...")
                 if os.path.exists(work_dir): shutil.rmtree(work_dir)
                 os.makedirs(work_dir)
                 all_f = [os.path.join(r, file) for r, d, fs in os.walk(src) for file in fs]
@@ -289,22 +276,22 @@ class BagEtte(ctk.CTk):
                     else:
                         bag_info[k] = ", ".join([str(x) for x in val]) if isinstance(val, list) else str(val)
 
-            self.log("BAKING (GENERATING BAGIT)...")
+            self.log("Baking (generating BagIt structure)...")
             self.gui_queue.put({"action": "progress", "value": 0.6})
             bagit.make_bag(work_dir, bag_info, checksums=['sha256'])
             self.gui_queue.put({"action": "progress", "value": 0.8})
             
             if self.do_zip.get():
-                self.log("WRAPPING IN ZIP...")
+                self.log("Wrapping in ZIP...")
                 shutil.make_archive(work_dir, 'zip', work_dir)
                 if not self.in_place.get(): shutil.rmtree(work_dir)
             
             self.gui_queue.put({"action": "progress", "value": 1.0})
-            self.log("SUCCESS. BAG-ETTE READY.")
-            self.gui_queue.put({"action": "success", "message": "BAG-ETTE creation successful."})
+            self.log("Success! BAG-ETTE is ready.")
+            self.gui_queue.put({"action": "success", "message": "BAG-ETTE archival package creation successful."})
         except Exception as e:
-            self.log(f"ERROR: {e}")
-            self.gui_queue.put({"action": "error", "message": f"Archive failed: {e}"})
+            self.log(f"Error: {e}")
+            self.gui_queue.put({"action": "error", "message": f"Archive packing failed: {e}"})
 
 if __name__ == "__main__":
     app = BagEtte()
