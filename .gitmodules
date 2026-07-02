@@ -1,3 +1,9 @@
 [submodule "SPQR"]
 	path = SPQR
 	url = https://github.com/bcdhbonn/SPQR
+[submodule "GeoTIFCompressor"]
+	path = GeoTIFCompressor
+	url = https://github.com/bcdhbonn/GeoTIFCompressor
+[submodule "BCDH-Toolbox"]
+	path = BCDH-Toolbox
+	url = https://github.com/bcdhbonn/BCDH-Toolbox
