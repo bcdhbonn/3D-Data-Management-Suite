@@ -1,0 +1,3 @@
+[submodule "SPQR"]
+	path = SPQR
+	url = https://github.com/bcdhbonn/SPQR
